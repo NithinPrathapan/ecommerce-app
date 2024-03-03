@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import {
   getDownloadURL,
   getStorage,
@@ -9,10 +10,21 @@ import { app } from "../firebase";
 import { Link } from "react-router-dom";
 
 const Signup = () => {
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({});
   const [fileError, setFileError] = useState({});
   const [filePer, setFilePer] = useState(0);
   const [file, setFile] = useState(undefined);
+
+  useEffect(() => {
+    if (filePer === 100) {
+      [
+        setTimeout(() => {
+          setFilePer(null);
+        }, 3000),
+      ];
+    }
+  }, [filePer]);
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -24,6 +36,7 @@ const Signup = () => {
     setFile(e.target.files[0]);
   };
   const handleFileUpload = (e) => {
+    setLoading(true);
     e.preventDefault();
     const storage = getStorage(app);
     const fileName = new Date().getTime() + file.name;
@@ -45,21 +58,42 @@ const Signup = () => {
       () => {
         getDownloadURL(uploadTask.snapshot.ref).then((downloadUrl) => {
           setFormData({ ...formData, profilePicture: downloadUrl });
+          setLoading(false);
         });
       }
     );
   };
-  const handleSubmit = () => {};
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/signup",
+        {
+          fullname: formData.fullname,
+          email: formData.email,
+          password: formData.password,
+          profilePicture: formData.profilePicture,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+      console.log(response.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
   return (
     <div className="flex items-center  justify-center gap-2 px-6 flex-col w-full">
       <div className="relative mx-auto my-8 flex items-center justify-center">
-        <h1 className="tracking-[9px] justify-center  drop-shadow-xl text-center font-logo font-extrabold sm:text-4xl  text-3xl text-heading  px-6   rounded-lg">
+        <h1 className="tracking-[9px] justify-center  drop-shadow-xl text-center font-logo font-extrabold sm:text-4xl  text-3xl text-button  px-6   rounded-lg">
           Sociopedia
-          <div className="border-2 rounded-full w-[90%] bg-heading py-[1px]  mt-2 flex justify-center text-center mx-auto"></div>
+          <div className="border-2 rounded-full w-[90%] bg-button py-[1px]  mt-2 flex justify-center text-center mx-auto"></div>
         </h1>
       </div>
 
       <form
+        onSubmit={handleSubmit}
         action=""
         className="flex flex-col   gap-8 my-auto w-full mx-auto justify-center items-center max-w-5xl "
       >
@@ -73,7 +107,7 @@ const Signup = () => {
         <input
           className=" sm:w-[80%] w-full text-center outline-none rounded-md shadow-sm  px-4 py-3"
           type="text"
-          name="name"
+          name="fullname"
           onChange={handleChange}
           placeholder="Enter Full Name"
         />
@@ -109,7 +143,10 @@ const Signup = () => {
           </p>
         )}
 
-        <button className="bg-button px-6 py-4 tracking-widest rounded-lg  text-main_text text-xl sm:w-[80%] w-full shadow-md font-semibold">
+        <button
+          disabled={loading}
+          className="bg-button px-6 py-4 disabled:opacity-80 hover:opacity-95 tracking-widest rounded-lg  text-main_text text-xl sm:w-[80%] w-full shadow-md font-semibold"
+        >
           Register
         </button>
       </form>
